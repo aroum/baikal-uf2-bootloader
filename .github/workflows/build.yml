@@ -25,8 +25,8 @@ jobs:
       - name: Download and extract SDK
         if: steps.cache-sdk.outputs.cache-hit != 'true'
         run: |
-          curl -fL \
-            http://mcu.baikalelectronics.ru/storage/files/mcu-sdk-linux_2.4.0_20261006.tar.gz \
+          curl -fLk \
+            https://mcu.baikalelectronics.ru/storage/files/mcu-sdk-linux_2.4.0_20261006.tar.gz \
             -o /tmp/baikal-sdk.tar.gz
           sudo mkdir -p /opt/baikal-sdk
           sudo tar -xzf /tmp/baikal-sdk.tar.gz -C /opt/baikal-sdk --strip-components=1
