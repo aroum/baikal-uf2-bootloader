@@ -36,10 +36,10 @@ Since the **EVU-LI-2.1** board does not have a dedicated user button (only a Res
 Press the **Reset** button twice within **500 ms**.
 - On the first reset, the bootloader writes a magic flag into TCMB RAM (`TCMB_BASE`, preserved across soft reset) and waits 500 ms.
 - If reset is pressed a second time within this window, the flag is detected and the board enters DFU mode.
-- The onboard LED briefly blinks to indicate DFU mode has started.
+- The onboard LED on **PA15** (`GPIO0_PIN_15`) blinks briefly to confirm that DFU mode has been activated.
 
 ### 2. Automatic Entry (Empty/Corrupted App)
-If the application region does not contain a valid application (i.e. magic number at `0xA0010020` is not `0x0BEF5262`), the bootloader enters DFU mode automatically on boot.
+If the application region does not contain a valid application (i.e. magic number at `0xA0010020` is not `0x0BEF5262`), the bootloader enters DFU mode automatically on boot and pulses the **PA15** LED.
 
 ### 3. Software Trigger from User Application
 The running application can jump to bootloader by writing the double-tap magic value:
@@ -50,6 +50,11 @@ The running application can jump to bootloader by writing the double-tap magic v
 *(__IO uint32_t *)TCMB_BASE = DBL_TAP_MAGIC;
 NVIC_SystemReset(); /* or equivalent RISC-V software reset */
 ```
+
+### 💡 LED Indication (PA15 / GPIO0_PIN_15)
+- **DFU Activation:** Brief pulse on PA15 confirms entry into the bootloader.
+- **Flashing Process:** PA15 stays ON continuously while UF2 blocks are being written to flash memory.
+- **Flashing Complete:** PA15 turns OFF and the MCU reboots into the updated application.
 
 ---
 
