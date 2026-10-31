@@ -8,9 +8,6 @@ CDEFS += -DCFG_TUSB_MCU=OPT_MCU_BMCU
 CDEFS += -DBOARD_TUD_MAX_SPEED=OPT_MODE_HIGH_SPEED
 CDEFS += -DTUF2_LOG=0
 
-# Project source files
-SRC_DIR = $(CURDIR)/src
-
 # TinyUSB device stack
 CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/src/tusb.c
 CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/src/common/tusb_fifo.c
@@ -19,9 +16,8 @@ CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/src/class/msc/msc_device.c
 CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/src/portable/bmcu/dcd_bmcu.c
 CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/hw/bsp/bmcu/family.c
 
-# TinyUF2 (boards.c is local — patched for EVU_LI_2_1, no user button)
+# TinyUF2
 CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUF2/src/ghostfat.c
-CSRC += $(SRC_DIR)/boards.c
 
 # HAL drivers
 CSRC += $(SDK_DIR)/Drivers/HAL/Src/bmcu_cru.c
@@ -38,7 +34,8 @@ ASRC_EXCLUDE += $(SDK_DIR)/Tools/build/platform/$(MCU_MODEL)/startup_c0_c1.S
 INC_DIR += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/src
 INC_DIR += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/hw
 INC_DIR += $(SDK_DIR)/Middlewares/Third_Party/TinyUF2/src
-INC_DIR += $(SDK_DIR)/Middlewares/Third_Party/TinyUF2/ports/bmcu
+# src/ overrides TinyUF2 ports/bmcu: boards.h patched for EVU_LI_2_1 (no user button)
+INC_DIR += $(CURDIR)/src
 
 # Suppress warning from TinyUF2's ghostfat.c string literal usage
 CFLAGS += -Wno-unterminated-string-initialization
