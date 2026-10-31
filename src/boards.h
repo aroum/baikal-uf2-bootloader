@@ -69,7 +69,7 @@
 
 #define UF2_PRODUCT_NAME                "Baikal EVU-LI 2.1"
 #define UF2_BOARD_ID                    "Baikal EVU-LI 2.1"
-#define UF2_VOLUME_LABEL                "EVU-LI 2.1 "
+#define UF2_VOLUME_LABEL                "BAIKAL_LI  "
 #define UF2_INDEX_URL                   "https://www.baikalelectronics.ru/"
 
 
