@@ -155,7 +155,7 @@ board_init (void) {
 
     bsp_led_init();
 
-#ifdef USE_DFU_BUTTON
+#if USE_DFU_BUTTON
     bsp_btn_init();
 #endif /* USE_DFU_BUTTON */
 
