@@ -18,8 +18,8 @@
 #include "board_api.h"
 #include "uf2.h"
 
-#define MSC_VENDOR_ID           "TinyUSB"
-#define MSC_PRODUCT_ID          "UF2 Bootloader"
+#define MSC_VENDOR_ID           "Baikal"
+#define MSC_PRODUCT_ID          "EVU-LI 2.1"
 #define MSC_PRODUCT_REV         "1.0"
 
 #define MSC_STORAGE_BLOCK_SIZE  512U

@@ -27,6 +27,7 @@
 #include "bsp.h"
 
 static uint32_t indicator_state = STATE_BOOTLOADER_STARTED;
+static uint32_t led_cycle_length = 300; // ms (fast blink by default before USB mount)
 
 static bool check_dfu_mode(void);
 
@@ -41,8 +42,22 @@ indicator_set (uint32_t state) {
 
     switch (indicator_state)
     {
+        case STATE_USB_PLUGGED:
+        {
+            led_cycle_length = 3000; // slow breathing/blink when USB connected & ready
+        }
+        break;
+
+        case STATE_BOOTLOADER_STARTED:
+        case STATE_USB_UNPLUGGED:
+        {
+            led_cycle_length = 300; // fast blink when disconnected / waiting
+        }
+        break;
+
         case STATE_WRITING_STARTED:
         {
+            led_cycle_length = 100; // rapid blinking while flashing
             board_led_write(1UL);
         }
         break;
@@ -50,9 +65,32 @@ indicator_set (uint32_t state) {
         case STATE_WRITING_FINISHED:
         default:
         {
+            led_cycle_length = 3000;
             board_led_write(0UL);
         }
         break;
+    }
+}
+
+static void
+led_task (void) {
+    if (indicator_state == STATE_WRITING_STARTED)
+    {
+        board_led_write(1UL);
+        return;
+    }
+
+    uint32_t millis = tusb_time_millis_api();
+    uint32_t cycle = millis % led_cycle_length;
+    uint32_t half_cycle = led_cycle_length / 2;
+
+    if (cycle < half_cycle)
+    {
+        board_led_write(1UL);
+    }
+    else
+    {
+        board_led_write(0UL);
     }
 }
 
@@ -228,6 +266,7 @@ main (void) {
     for (;;)
     {
         tud_task();
+        led_task();
 
         if (board_inactivity_timeout_is_ellapsed())
         {

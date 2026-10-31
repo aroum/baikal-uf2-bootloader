@@ -65,11 +65,11 @@
 #define BOARD_UF2_FAMILY_ID             (0x6ecb67a8)
 
 #define USB_MANUFACTURER                "Baikal Electronics"
-#define USB_PRODUCT                     "UF2 Board"
+#define USB_PRODUCT                     "Baikal EVU-LI 2.1"
 
-#define UF2_PRODUCT_NAME                USB_MANUFACTURER " " USB_PRODUCT
-#define UF2_BOARD_ID                    "UF2 Board"
-#define UF2_VOLUME_LABEL                "UF2"
+#define UF2_PRODUCT_NAME                "Baikal EVU-LI 2.1"
+#define UF2_BOARD_ID                    "Baikal EVU-LI 2.1"
+#define UF2_VOLUME_LABEL                "EVU-LI 2.1 "
 #define UF2_INDEX_URL                   "https://www.baikalelectronics.ru/"
 
 
