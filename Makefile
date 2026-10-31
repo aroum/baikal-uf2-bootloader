@@ -19,9 +19,9 @@ CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/src/class/msc/msc_device.c
 CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/src/portable/bmcu/dcd_bmcu.c
 CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/hw/bsp/bmcu/family.c
 
-# TinyUF2
+# TinyUF2 (boards.c is local — patched for EVU_LI_2_1, no user button)
 CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUF2/src/ghostfat.c
-CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUF2/ports/bmcu/boards.c
+CSRC += $(SRC_DIR)/boards.c
 
 # HAL drivers
 CSRC += $(SDK_DIR)/Drivers/HAL/Src/bmcu_cru.c
