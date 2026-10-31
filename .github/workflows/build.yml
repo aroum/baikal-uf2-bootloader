@@ -19,7 +19,7 @@ jobs:
         id: cache-sdk
         uses: actions/cache@v4
         with:
-          path: /opt/baikal-sdk
+          path: ~/baikal-sdk
           key: baikal-sdk-linux-2.4.0-20261006
 
       - name: Download and extract SDK
@@ -28,17 +28,15 @@ jobs:
           curl -fLk \
             https://mcu.baikalelectronics.ru/storage/files/mcu-sdk-linux_2.4.0_20261006.tar.gz \
             -o /tmp/baikal-sdk.tar.gz
-          sudo mkdir -p /opt/baikal-sdk
-          sudo tar -xzf /tmp/baikal-sdk.tar.gz -C /opt/baikal-sdk
+          mkdir -p ~/baikal-sdk
+          tar -xzf /tmp/baikal-sdk.tar.gz -C ~/baikal-sdk
           rm /tmp/baikal-sdk.tar.gz
-
-      - name: Mark toolchain as executable
-        run: chmod +x /opt/baikal-sdk/Tools/toolchain/bin/riscv32-none-elf-*
+          chmod +x ~/baikal-sdk/Tools/toolchain/bin/riscv32-none-elf-*
 
       - name: Build
         run: |
           make \
-            SDK_DIR=/opt/baikal-sdk \
+            SDK_DIR=$HOME/baikal-sdk \
             BUILD_TYPE=release \
             -j$(nproc)
 
