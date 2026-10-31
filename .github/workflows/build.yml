@@ -13,11 +13,11 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Cache Baikal MCU SDK
         id: cache-sdk
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/baikal-sdk
           key: baikal-sdk-linux-2.4.0-20261006
@@ -42,7 +42,7 @@ jobs:
           $HOME/baikal-sdk/Tools/toolchain/bin/riscv32-none-elf-size output/release/*.elf
 
       - name: Upload bootloader binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: baikal-bootloader-EVU_LI_2_1
           path: |
