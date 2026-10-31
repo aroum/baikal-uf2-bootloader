@@ -132,6 +132,27 @@ STATIC_ASSERT(FAT_ENTRIES_PER_SECTOR                       ==       256); // FAT
 #define UF2_SECTOR_COUNT                (_flash_size / UF2_FIRMWARE_BYTES_PER_SECTOR)
 #define UF2_BYTE_COUNT                  (UF2_SECTOR_COUNT * BPB_SECTOR_SIZE) // always a multiple of sector size, per UF2 spec
 
+/*
+char infoUf2File[128*3] =
+    "TinyUF2 Bootloader " UF2_VERSION "\r\n"
+    "Model: " UF2_PRODUCT_NAME "\r\n"
+    "Board-ID: " UF2_BOARD_ID "\r\n"
+    "Date: " COMPILE_DATE "\r\n"
+    "Flash Size: 0x";
+
+#ifdef UF2_INDEX_URL
+TINYUF2_CONST char indexFile[] =
+    "<!doctype html>\n"
+    "<html>"
+    "<body>"
+    "<script>\n"
+    "location.replace(\"" UF2_INDEX_URL "\");\n"
+    "</script>"
+    "</body>"
+    "</html>\n";
+#endif
+*/
+
 #ifdef TINYUF2_FAVICON_HEADER
 #include TINYUF2_FAVICON_HEADER
 const char autorunFile[] = "[Autorun]\r\nIcon=FAVICON.ICO\r\n";
@@ -139,6 +160,13 @@ const char autorunFile[] = "[Autorun]\r\nIcon=FAVICON.ICO\r\n";
 
 // size of CURRENT.UF2:
 static FileContent_t info[] = {
+    // Commented out to fit 16 KB bootloader flash limit:
+    // {.name = "INFO_UF2TXT", .content = infoUf2File , .size = sizeof(infoUf2File) - 1},
+    // {.name = "INDEX   HTM", .content = indexFile   , .size = sizeof(indexFile  ) - 1},
+#ifdef TINYUF2_FAVICON_HEADER
+    {.name = "AUTORUN INF", .content = autorunFile , .size = sizeof(autorunFile) - 1},
+    {.name = "FAVICON ICO", .content = favicon_data, .size = favicon_len            },
+#endif
     // current.uf2 must be the last element and its content must be NULL
     {.name = "CURRENT UF2", .content = NULL       , .size = 0                       },
 };
@@ -149,6 +177,8 @@ enum {
 };
 
 enum {
+  // FID_INFO = 0,
+  // FID_INDEX = 1,
   FID_UF2 = NUM_FILES - 1,
 };
 
@@ -241,12 +271,40 @@ static uint32_t info_index_of(uint32_t cluster) {
   return FID_UF2;
 }
 
+/*
+static void u32_to_hexstr(uint32_t value, char* buffer) {
+  const char hexDigits[] = "0123456789ABCDEF";
+  size_t i;
+
+  for (i = 0; i < 8; i++) {
+    buffer[i] = hexDigits[(value >> (28 - i * 4)) & 0xF];
+  }
+  buffer[i] = '\0';
+}
+*/
+
 void uf2_init(void) {
   // TODO maybe limit to application size only if possible board_flash_app_size()
   _flash_size = board_flash_size();
 
   // update CURRENT.UF2 file size
   info[FID_UF2].size = UF2_BYTE_COUNT;
+
+  /*
+  // update INFO_UF2.TXT with flash size if having enough space (8 bytes)
+  size_t txt_len = strlen(infoUf2File);
+  size_t const max_len = sizeof(infoUf2File) - 1;
+  if ( max_len - txt_len > 8) {
+    u32_to_hexstr(_flash_size, infoUf2File + txt_len);
+    txt_len += 8;
+
+    if (max_len - txt_len > 6) {
+      strcpy(infoUf2File + txt_len, " bytes");
+      txt_len += 6;
+    }
+  }
+  info[FID_INFO].size = txt_len;
+  */
 
   init_starting_clusters();
 }
