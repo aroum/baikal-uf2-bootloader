@@ -14,11 +14,11 @@ Overall Flash size: **256 KB** (Sector size: **1 KB**).
 
 | Region | Start Address | End Address | Size | Description |
 |---|---|---|---|---|
-| **Bootloader** | `0xA0000000` | `0xA000FFFF` | 64 KB | TinyUF2 bootloader image |
-| **Application** | `0xA0010000` | `0xA003FFFF` | 192 KB | User application region |
+| **Bootloader** | `0xA0000000` | `0xA0003FFF` | 16 KB | TinyUF2 bootloader image |
+| **Application** | `0xA0004000` | `0xA003FFFF` | 240 KB | User application region |
 
 > [!NOTE]
-> The bootloader checks for a valid application signature at `0xA0010020` (Magic Number: `0x0BEF5262`). If this word matches, and DFU mode is not requested, control jumps to `0xA0010000`.
+> The bootloader checks for a valid application signature at `0xA0004020` (Magic Number: `0x0BEF5262`). If this word matches, and DFU mode is not requested, control jumps to `0xA0004000`.
 
 ### Bootloader Runtime Memory (Internal RAM)
 
@@ -39,7 +39,7 @@ Press the **Reset** button twice within **500 ms**.
 - The onboard LED on **PA15** (`GPIO0_PIN_15`) blinks briefly to confirm that DFU mode has been activated.
 
 ### 2. Automatic Entry (Empty/Corrupted App)
-If the application region does not contain a valid application (i.e. magic number at `0xA0010020` is not `0x0BEF5262`), the bootloader enters DFU mode automatically on boot and pulses the **PA15** LED.
+If the application region does not contain a valid application (i.e. magic number at `0xA0004020` is not `0x0BEF5262`), the bootloader enters DFU mode automatically on boot and pulses the **PA15** LED.
 
 ### 3. Software Trigger from User Application
 The running application can jump to bootloader by writing the double-tap magic value:
@@ -68,7 +68,7 @@ The drive contains virtual files:
 
 ### Converting Your Firmware to UF2
 
-Compile your user application with offset `0x10000` (64 KB offset, base address `0xA0010000`):
+Compile your user application with offset `0x4000` (16 KB offset, base address `0xA0004000`):
 
 **From HEX:**
 ```sh
@@ -77,7 +77,7 @@ python3 scripts/uf2conv.py firmware.hex -c -o firmware.uf2 -f 0x6ecb67a8
 
 **From BIN:**
 ```sh
-python3 scripts/uf2conv.py firmware.bin -c -o firmware.uf2 -f 0x6ecb67a8 -b 0xA0010000
+python3 scripts/uf2conv.py firmware.bin -c -o firmware.uf2 -f 0x6ecb67a8 -b 0xA0004000
 ```
 
 > **Family ID:** `0x6ecb67a8` (Baikal BE-U1000 / BMCU family)
