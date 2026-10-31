@@ -17,7 +17,7 @@ CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/src/portable/bmcu/dcd_bmcu.c
 CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/hw/bsp/bmcu/family.c
 
 # TinyUF2
-CSRC += $(SDK_DIR)/Middlewares/Third_Party/TinyUF2/src/ghostfat.c
+CSRC += $(CURDIR)/src/ghostfat.c
 
 # HAL drivers
 CSRC += $(SDK_DIR)/Drivers/HAL/Src/bmcu_cru.c
@@ -39,6 +39,10 @@ INC_DIR += $(CURDIR)/src
 
 # Suppress warning from TinyUF2's ghostfat.c string literal usage
 CFLAGS += -Wno-unterminated-string-initialization
+
+# Size optimizations & Link-Time Optimization
+CFLAGS += -flto -Os
+LDFLAGS += -flto -Os
 
 # Use our own linker script instead of the auto-generated one
 LDSCRIPT = $(CURDIR)/linker.ld

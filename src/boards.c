@@ -161,9 +161,6 @@ board_init (void) {
 
     bsp_serial_init();
 
-    /* Disable buffered stdout */
-    setbuf(stdout, NULL);
-
     /* Enable interrupts globally */
     __enable_irq();
 }
@@ -179,9 +176,6 @@ board_teardown (void) {
 
     /* Deinit USB */
     tusb_deinit(BOARD_TUD_RHPORT);
-
-    /* Restore stdout buffering */
-    setvbuf(stdout, NULL, _IOFBF, BUFSIZ);
 
     /* Deinit serial */
     bsp_serial_deinit();

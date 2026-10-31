@@ -42,7 +42,7 @@
                                                                        internal memory address validation will fail. */
 
 #define BOARD_FLASH_BOOT_ADDR           BOARD_FLASH_ADDR_ZERO                                   /* Bootloader address */
-#define BOARD_FLASH_BOOT_SIZE           (64UL * 1024UL)                                         /* Bootloader size */
+#define BOARD_FLASH_BOOT_SIZE           (16UL * 1024UL)                                         /* Bootloader size */
 #define BOARD_FLASH_APP_ADDR            (BOARD_FLASH_ADDR_ZERO + BOARD_FLASH_BOOT_SIZE)         /* Application address. It's a replacement for BOARD_FLASH_APP_START, check the note above. */
 #define BOARD_FLASH_APP_SIZE            (BOARD_FLASH_SIZE - BOARD_FLASH_BOOT_SIZE)              /* Application size */
 
@@ -70,7 +70,6 @@
 #define UF2_PRODUCT_NAME                "Baikal EVU-LI 2.1"
 #define UF2_BOARD_ID                    "Baikal EVU-LI 2.1"
 #define UF2_VOLUME_LABEL                "BAIKAL_LI  "
-#define UF2_INDEX_URL                   "https://www.baikalelectronics.ru/"
 
 
 #define TINYUF2_DBL_TAP_DFU             (1)
