@@ -1,11 +1,17 @@
-name: Build bootloader
+name: Build and Release bootloader
 
 on:
   push:
     branches: ["main"]
+    tags:
+      - "v*"
+      - "[0-9]+.[0-9]+*"
   pull_request:
     branches: ["main"]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -51,3 +57,13 @@ jobs:
             output/release/*.hex
           if-no-files-found: error
           retention-days: 3
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            output/release/*.elf
+            output/release/*.bin
+            output/release/*.hex
+          generate_release_notes: true

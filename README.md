@@ -1,104 +1,119 @@
-# Baikal Bootloader
+# USB UF2 загрузчик для платы Baikal EVU-LI-2.1
 
-TinyUF2 bootloader for **Baikal BE-U1000** MCU (configured for **EVU-LI-2.1** board).
+Компактный загрузчик USB UF2 (TinyUF2 / Mass Storage Class) для микроконтроллера **Baikal BE-U1000**, сконфигурированный специально для отладочной платы **EVU-LI-2.1**.
 
-Exposes a USB Mass Storage device labeled `UF2`. Flashing applications is as simple as dragging and dropping a `.uf2` file onto the drive.
-
----
-
-## 🗺️ Memory Layout
-
-### Flash Memory (eFlash / External Flash mapped to `0xA0000000`)
-
-Overall Flash size: **256 KB** (Sector size: **1 KB**).
-
-| Region | Start Address | End Address | Size | Description |
-|---|---|---|---|---|
-| **Bootloader** | `0xA0000000` | `0xA0003FFF` | 16 KB | TinyUF2 bootloader image |
-| **Application** | `0xA0004000` | `0xA003FFFF` | 240 KB | User application region |
-
-> [!NOTE]
-> The bootloader checks for a valid application signature at `0xA0004020` (Magic Number: `0x0BEF5262`). If this word matches, and DFU mode is not requested, control jumps to `0xA0004000`.
-
-### Bootloader Runtime Memory (Internal RAM)
-
-During bootloader execution, code and data are placed as follows:
-- **TCMA (`0x40010000`, 64 KB)**: Execution code (`.text`) and read-only data (`.rodata`). Executing from TCM allows the bootloader to safely erase or rewrite flash without stalling instruction fetch.
-- **SRAM (`0x70000000`, 32 KB)**: Mutable data (`.data`, `.bss`), heap, and stack.
+Репозиторий предназначен исключительно для платы **EVU-LI-2.1**. Загрузчик основан на официальном примере из [Baikal Electronics Linux SDK](https://mcu.baikalelectronics.ru/docs/developers/sdk-for-linux), но существенно доработан:
+- Оптимизирован по размеру: ужат с 64 КБ до **16 КБ** (освобождено до 240 КБ под прошивку пользователя вместо 192 КБ).
+- Добавлена плавная/динамическая анимация светодиода (PA15).
+- Настроен безопасный запуск из встроенной памяти TCMA для возможности бесшовной перезаписи Flash.
+- При подключении к ПК загрузчик монтируется как стандартный съемный накопитель (USB флешка) с меткой `BAIKAL_LI`. Прошивка осуществляется простым перетаскиванием файла `.uf2` на диск.
 
 ---
 
-## ⚡ How to Enter DFU (Bootloader) Mode
+## Аппаратный выбор режима загрузки (переключатель SA1)
 
-Since the **EVU-LI-2.1** board does not have a dedicated user button (only a Reset button):
+На плате **EVU-LI-2.1** режим загрузки микроконтроллера задается двухпозиционным DIP-переключателем **SA1**:
 
-### 1. Fast Double Reset (Recommended)
-Press the **Reset** button twice within **500 ms**.
-- On the first reset, the bootloader writes a magic flag into TCMB RAM (`TCMB_BASE`, preserved across soft reset) and waits 500 ms.
-- If reset is pressed a second time within this window, the flag is detected and the board enters DFU mode.
-- The onboard LED on **PA15** (`GPIO0_PIN_15`) blinks briefly to confirm that DFU mode has been activated.
+| Положение SA1 | Режим | Назначение |
+|---|---|---|
+| **ON ON** | **Аппаратный DFU / bootROM** | Вход во встроенный аппаратный DFU-загрузчик ROM. Используется для первичной прошивки загрузчика или аварийного восстановления через утилиту `dfu-util`. |
+| **OFF OFF** | **EFLASH (Normal Run)** | Стандартный режим работы. Микроконтроллер стартует из встроенной памяти eFlash (`0xA0000000`), запуская установленный TinyUF2 загрузчик или приложение. |
 
-### 2. Automatic Entry (Empty/Corrupted App)
-If the application region does not contain a valid application (i.e. magic number at `0xA0004020` is not `0x0BEF5262`), the bootloader enters DFU mode automatically on boot and pulses the **PA15** LED.
+### Порядок первичной прошивки загрузчика:
+1. Переведите переключатель **SA1** в положение **ON ON**.
+2. Подключите плату к компьютеру по USB (или нажмите кнопку Reset). Плата определится как USB DFU устройство (`[cafe:2303]`).
+3. Зашейте загрузчик с помощью утилиты `dfu-util`:
+   ```bash
+   dfu-util -d cafe:2303 -a 3 -D baikal-bootloader.bin
+   ```
+4. После успешной прошивки переведите переключатель **SA1** в положение **OFF OFF** для старта из eFlash.
+5. Нажмите кнопку Reset или переподключите питание.
 
-### 3. Software Trigger from User Application
-The running application can jump to bootloader by writing the double-tap magic value:
+---
+
+## Способы входа в режим UF2-загрузчика (DFU)
+
+На плате **EVU-LI-2.1** нет отдельной пользовательской кнопки Boot (присутствует только кнопка Reset), поэтому для вызова загрузчика предусмотрены следующие механизмы:
+
+### 1. Быстрый двойной сброс (Fast Double Reset, основной способ)
+Нажмите кнопку **Reset** дважды с интервалом менее **500 мс**:
+- При первом нажатии Reset загрузчик выставляет флаг `DBL_TAP_MAGIC` (`0xF01669EF`) в памяти TCMB (сохраняется при мягком сбросе) и ждет 500 мс.
+- Если в течение 500 мс поступает второй сброс, загрузчик не передает управление приложению, а входит в режим прошивки UF2.
+- На плате начинает мигать светодиод **PA15**, и в системе появляется диск `BAIKAL_LI`.
+
+### 2. Автоматический вход (чистая память или поврежденное приложение)
+Если пользовательское приложение отсутствует либо не содержит валидного заголовка по адресу `0xA0004020` (Magic: `0x0BEF5262`), загрузчик автоматически остается в режиме ожидания прошивки.
+
+### 3. Программный переход из пользовательского приложения
+Ваша основная прошивка может в любой момент инициировать вход в загрузчик:
 ```c
-#define TCMB_BASE 0x40020000UL /* or platform-specific TCMB base */
-#define DBL_TAP_MAGIC 0xF01669EFUL
+#define TCMB_BASE       0x40020000UL
+#define DBL_TAP_MAGIC   0xF01669EFUL
 
 *(__IO uint32_t *)TCMB_BASE = DBL_TAP_MAGIC;
-NVIC_SystemReset(); /* or equivalent RISC-V software reset */
+// Инициировать программный сброс (например через WDT или CRU reset)
 ```
-
-### 💡 LED Indication (PA15 / GPIO0_PIN_15)
-- **DFU Activation:** Brief pulse on PA15 confirms entry into the bootloader.
-- **Flashing Process:** PA15 stays ON continuously while UF2 blocks are being written to flash memory.
-- **Flashing Complete:** PA15 turns OFF and the MCU reboots into the updated application.
 
 ---
 
-## 📦 Flashing Firmware
+## Индикация светодиода (PA15 / GPIO0_PIN_15)
 
-When in DFU mode, the board mounts as a USB drive named `UF2`.
-The drive contains virtual files:
-- `INFO_UF2.TXT` — board and bootloader details
-- `INDEX.HTM` — web redirect to documentation
-- `CURRENT.UF2` — current contents of flash memory
+- **Ожидание подключения USB / режим загрузчика:** частое мигание (период 300 мс).
+- **USB подключен и готов к прошивке:** плавное редкое мигание (период 3000 мс).
+- **Идет процесс записи во Flash:** светодиод непрерывно светится.
+- **Завершение прошивки:** светодиод гаснет, устройство автоматически перезагружается в новое приложение.
 
-### Converting Your Firmware to UF2
+---
 
-Compile your user application with offset `0x4000` (16 KB offset, base address `0xA0004000`):
+## Разметка Flash-памяти (eFlash)
 
-**From HEX:**
-```sh
+Общий объем eFlash: **256 КБ** (размер сектора: **1 КБ**). Базовый адрес: `0xA0000000`.
+
+| Область | Начальный адрес | Конечный адрес | Размер | Назначение |
+|---|---|---|---|---|
+| **Загрузчик (Bootloader)** | `0xA0000000` | `0xA0003FFF` | **16 КБ** | Образ TinyUF2 |
+| **Пользовательское приложение** | `0xA0004000` | `0xA003FFFF` | **240 КБ** | Область под прошивку пользователя |
+
+Загрузчик проверяет сигнатуру приложения по адресу `0xA0004020` (магическое число: `0x0BEF5262`). При совпадении управление передается на стартовый адрес `0xA0004000`.
+
+---
+
+## Подготовка и конвертация пользовательской прошивки в формат UF2
+
+При компиляции приложения в Makefile укажите смещение:
+```make
+MEM_REG_ROM_OFFSET = 0x4000
+```
+
+Конвертация скомпилированного файла в формат `.uf2` утилитой `uf2conv.py`:
+
+**Из файла .hex:**
+```bash
 python3 scripts/uf2conv.py firmware.hex -c -o firmware.uf2 -f 0x6ecb67a8
 ```
 
-**From BIN:**
-```sh
+**Из файла .bin:**
+```bash
 python3 scripts/uf2conv.py firmware.bin -c -o firmware.uf2 -f 0x6ecb67a8 -b 0xA0004000
 ```
 
-> **Family ID:** `0x6ecb67a8` (Baikal BE-U1000 / BMCU family)
+> **Family ID:** `0x6ecb67a8` (Baikal BE-U1000 / BMCU)
 
-Simply drag and drop `firmware.uf2` onto the `UF2` drive. The LED will illuminate while flashing is in progress, and the device will reboot into your application automatically when complete.
+После генерации перетащите `firmware.uf2` на смонтированный диск `BAIKAL_LI`. По завершении записи плата автоматически перезагрузится в ваше приложение.
 
 ---
 
-## 🛠️ Building the Bootloader
+## Сборка загрузчика
 
-### GitHub Actions (Automatic)
-Every push to `main` automatically builds `release` artifacts on GitHub Actions.
-Precompiled binaries can be downloaded directly from the workflow run artifacts:
+### Автоматическая сборка в GitHub Actions
+При каждом push создаются готовые исполняемые файлы (retention 3 дня), доступные во вкладке Actions и Releases:
 - `baikal-bootloader.bin`
 - `baikal-bootloader.hex`
 - `baikal-bootloader.elf`
 
-### Local Build (Linux x86_64)
-Requires the official [Baikal MCU SDK v2.4.0](https://mcu.baikalelectronics.ru/):
+### Локальная сборка (Linux x86_64)
+Требуется установленный [Baikal MCU SDK v2.4.0](https://mcu.baikalelectronics.ru/docs/developers/sdk-for-linux):
 
-```sh
+```bash
 make SDK_DIR=/path/to/mcu-sdk-linux_2.4.0_20261006 BUILD_TYPE=release
 ```
-Outputs are generated in `output/release/`.
