@@ -22,7 +22,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Test flash safety on host
-        run: python3 tests/test_flash.py
+        run: |
+          python3 tests/test_flash.py
+          python3 tests/test_uf2.py
 
       - name: Cache Baikal MCU SDK
         id: cache-sdk
