@@ -280,9 +280,8 @@ board_app_jump (void) {
 uint8_t
 board_usb_get_serial (uint8_t serial_id[16]) {
     /* Fixed serial string is 01234567889ABCDEF */
-    uint32_t* uid32 = (uint32_t*)(uintptr_t)serial_id;
-    uid32[0] = 0x67452301;
-    uid32[1] = 0xEFCDAB89;
+    static const uint8_t serial[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef};
+    memcpy(serial_id, serial, sizeof(serial));
 
     return 8U;
 }
@@ -316,7 +315,11 @@ board_led_write (uint32_t state) {
  */
 void
 board_flash_init (void) {
-    /* EFLASH has already been initialized in time of system clock configuration. */
+    board_flash_erase_reset();
+}
+
+void board_flash_erase_reset(void) {
+    memset(flash_sectors_erased, 0, sizeof(flash_sectors_erased));
 }
 
 /**
@@ -324,7 +327,7 @@ board_flash_init (void) {
  */
 uint32_t
 board_flash_size (void) {
-    return BOARD_FLASH_SIZE;
+    return BOARD_FLASH_APP_SIZE;
 }
 
 /**

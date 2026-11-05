@@ -459,7 +459,7 @@ void uf2_read_block (uint32_t block_no, uint8_t *data) {
     else {
       // CURRENT.UF2: generate data on-the-fly
       uint32_t addr = BOARD_FLASH_APP_START + (fileRelativeSector * UF2_FIRMWARE_BYTES_PER_SECTOR);
-      if ( addr < (BOARD_FLASH_ADDR_ZERO + _flash_size) ) {
+      if ( addr < (BOARD_FLASH_APP_START + _flash_size) ) {
         UF2_Block *bl = (void*) data;
         bl->magicStart0 = UF2_MAGIC_START0;
         bl->magicStart1 = UF2_MAGIC_START1;
@@ -492,7 +492,11 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
   (void) block_no;
   UF2_Block *bl = (void*) data;
 
-  if ( !is_uf2_block(bl) ) return -1;
+  if ( !is_uf2_block(bl) || !(bl->flags & UF2_FLAG_FAMILYID) ||
+       (bl->flags & UF2_FLAG_NOFLASH) || bl->payloadSize > sizeof(bl->data) ||
+       !bl_flash_range_ok(bl->targetAddr, bl->payloadSize) ||
+       !bl->numBlocks || bl->numBlocks >= MAX_BLOCKS || bl->blockNo >= bl->numBlocks ||
+       (state->numBlocks && state->numBlocks != bl->numBlocks) ) return -1;
 
   if (bl->familyID == BOARD_UF2_FAMILY_ID) {
     // generic family ID

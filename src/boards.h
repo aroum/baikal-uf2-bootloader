@@ -17,6 +17,9 @@
 #ifndef BOARDS_H_
 #define BOARDS_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
  extern "C" {
 #endif
@@ -36,15 +39,12 @@
 #define BOARD_FLASH_SECTOR_SIZE         (1024UL)                    /* Flash sector size */
 
 #define BOARD_FLASH_ADDR_ZERO           (0xA0000000UL)              /* Flash start address, used only for address validation */
-#define BOARD_FLASH_APP_START           BOARD_FLASH_ADDR_ZERO       /* Application start address.
-                                                                       Due to the current state of ghostfat.c implementation
-                                                                       it must coincide with the flash start address, otherwise
-                                                                       internal memory address validation will fail. */
 
 #define BOARD_FLASH_BOOT_ADDR           BOARD_FLASH_ADDR_ZERO                                   /* Bootloader address */
 #define BOARD_FLASH_BOOT_SIZE           (16UL * 1024UL)                                         /* Bootloader size */
 #define BOARD_FLASH_APP_ADDR            (BOARD_FLASH_ADDR_ZERO + BOARD_FLASH_BOOT_SIZE)         /* Application address. It's a replacement for BOARD_FLASH_APP_START, check the note above. */
 #define BOARD_FLASH_APP_SIZE            (BOARD_FLASH_SIZE - BOARD_FLASH_BOOT_SIZE)              /* Application size */
+#define BOARD_FLASH_APP_START           BOARD_FLASH_APP_ADDR
 
 #if ((BOARD_FLASH_BOOT_ADDR % BOARD_FLASH_SECTOR_SIZE) != 0x0UL)
 #error "BOARD_FLASH_BOOT_ADDR must be aligned on a sector boundary"
@@ -83,6 +83,7 @@
 /** @brief Erases the flash memory sectors overlapping with a buffer. */
 bool board_flash_erase_overlapping_sectors(void* buffer, uint32_t len);
 bool bl_flash_range_ok(uintptr_t addr, uint32_t len);
+void board_flash_erase_reset(void);
 
 /** @brief Sets up inactivity timeout after firmware update. */
 void board_inactivity_timeout_set(void);

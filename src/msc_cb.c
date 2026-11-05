@@ -187,16 +187,22 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t *
             (!(bl->flags & UF2_FLAG_NOFLASH)) &&
             (bl->familyID == BOARD_UF2_FAMILY_ID) &&
             (bl->payloadSize <= sizeof(bl->data)) &&
+            bl->numBlocks && bl->numBlocks < MAX_BLOCKS && bl->blockNo < bl->numBlocks &&
+            (first_write || write_state.numBlocks == bl->numBlocks) &&
             bl_flash_range_ok(bl->targetAddr, bl->payloadSize))
         {
             if (first_write)
             {
+                memset(&write_state, 0, sizeof(write_state));
+                board_flash_erase_reset();
                 indicator_set(STATE_WRITING_STARTED);
                 first_write = false;
             }
 
-            if (!board_flash_erase_overlapping_sectors((void*)(uintptr_t)bl->targetAddr, bl->payloadSize))
+            if (!board_flash_erase_overlapping_sectors((void*)(uintptr_t)bl->targetAddr, bl->payloadSize)) {
+                write_state.aborted = true;
                 return TUD_MSC_RET_ERROR;
+            }
         }
         else
         {
@@ -207,7 +213,9 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t *
             continue;
         }
 
-        if (uf2_write_block(lba, buffer, &write_state) == 0)
+        int result = uf2_write_block(lba, buffer, &write_state);
+        if (result < 0) return TUD_MSC_RET_ERROR;
+        if (result == 0)
         {
             /* Interrupt on busy, ignore other errors */
             break;
@@ -232,6 +240,7 @@ void tud_msc_write10_complete_cb(uint8_t lun)
 
     if (write_state.aborted)
     {
+        first_write = true;
         /* DFU is aborted */
         indicator_set(STATE_WRITING_FINISHED);
     }
