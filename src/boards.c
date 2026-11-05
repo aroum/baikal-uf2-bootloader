@@ -374,14 +374,19 @@ board_flash_write (uint32_t addr, void const* data, uint32_t len) {
  */
 void
 board_flash_erase_app (void) {
+    board_flash_erase_reset();
     uint32_t sector_address = BOARD_FLASH_APP_ADDR;
     while (sector_address < (BOARD_FLASH_APP_ADDR + BOARD_FLASH_APP_SIZE))
     {
-        if (EFLASH_EraseSector(sector_address, EFLASH_MAIN_ARRAY) == EFLASH_COMPLETE)
-        {
-            sector_address += BOARD_FLASH_SECTOR_SIZE;
+        if (!board_flash_erase_overlapping_sectors((void *)(uintptr_t)sector_address,
+                                                  BOARD_FLASH_SECTOR_SIZE)) {
+            TUF2_LOG1("Application erase failed\r\n");
+            break;
         }
+        sector_address += BOARD_FLASH_SECTOR_SIZE;
     }
+    /* A subsequent UF2 transfer must start with a fresh erase map. */
+    board_flash_erase_reset();
 }
 
 /**

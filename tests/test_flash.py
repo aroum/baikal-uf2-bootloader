@@ -31,6 +31,7 @@ code = r'''
 #define BOARD_FLASH_SECTOR_NUM (BOARD_FLASH_SIZE / BOARD_FLASH_SECTOR_SIZE)
 #define EFLASH_MAIN_ARRAY 0
 #define EFLASH_COMPLETE 0
+#define TUF2_LOG1(...) ((void)0)
 static bool flash_sectors_erased[BOARD_FLASH_SECTOR_NUM];
 static unsigned calls, fail;
 static int EFLASH_EraseSector(uintptr_t addr, int array) {
@@ -40,7 +41,7 @@ static int EFLASH_EraseSector(uintptr_t addr, int array) {
   ++calls;
   return fail ? 1 : EFLASH_COMPLETE;
 }
-''' + function('bl_flash_range_ok') + '\n' + function('board_flash_erase_reset') + '\n' + function('board_flash_erase_overlapping_sectors') + r'''
+''' + function('bl_flash_range_ok') + '\n' + function('board_flash_erase_reset') + '\n' + function('board_flash_erase_overlapping_sectors') + '\n' + function('board_flash_erase_app') + r'''
 int main(void) {
   const uintptr_t start = BOARD_FLASH_APP_ADDR;
   const uintptr_t end = BOARD_FLASH_ADDR_ZERO + BOARD_FLASH_SIZE;
@@ -69,6 +70,19 @@ int main(void) {
   fail = 0;
   assert(board_flash_erase_overlapping_sectors((void *)start, 4));
   assert(calls == 1003);
+  board_flash_erase_reset();
+  calls = 0;
+  board_flash_erase_app();
+  assert(calls == BOARD_FLASH_APP_SIZE / BOARD_FLASH_SECTOR_SIZE);
+  assert(board_flash_erase_overlapping_sectors((void *)start, 4));
+  assert(calls == BOARD_FLASH_APP_SIZE / BOARD_FLASH_SECTOR_SIZE + 1);
+  calls = 0;
+  fail = 1;
+  board_flash_erase_app();
+  assert(calls == 1000);
+  fail = 0;
+  assert(board_flash_erase_overlapping_sectors((void *)start, 4));
+  assert(calls == 1001);
   return 0;
 }
 '''
