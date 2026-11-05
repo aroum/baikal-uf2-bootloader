@@ -30,7 +30,6 @@
  extern "C" {
 #endif
 
-#define TU_ASSERT(COND, ...)                  if (!(COND)) {}
 
 //--------------------------------------------------------------------+
 // Board Specific Configuration

@@ -30,6 +30,12 @@
 
 static bool flash_sectors_erased[BOARD_FLASH_SECTOR_NUM] = {0};     /* Sector erase marker */
 
+bool bl_flash_range_ok(uintptr_t addr, uint32_t len) {
+    uintptr_t end = BOARD_FLASH_APP_ADDR + BOARD_FLASH_APP_SIZE;
+    return len && !(addr & 3U) && !(len & 3U) &&
+           addr >= BOARD_FLASH_APP_ADDR && addr < end && len <= end - addr;
+}
+
 static bool inactivity_timeout_state = false;           /* Inactivity timeout state */
 static uint64_t inactivity_timeout_start_time;          /* Inactivity timeout start time */
 
@@ -348,6 +354,7 @@ board_flash_flush (void) {
  */
 bool
 board_flash_write (uint32_t addr, void const* data, uint32_t len) {
+    if (!data || !bl_flash_range_ok(addr, len)) return false;
 #if defined (BE_U1000)
     CRU_EFLASH_DMAMode_Enable();
 #endif
@@ -356,7 +363,7 @@ board_flash_write (uint32_t addr, void const* data, uint32_t len) {
     CRU_EFLASH_DMAMode_Disable();
 #endif
 
-    return true;
+    return memcmp((const void*)addr, data, len) == 0;
 }
 
 /**
@@ -379,10 +386,11 @@ board_flash_erase_app (void) {
  * @param buffer The buffer address.
  * @param len The buffer length.
  */
-void
+bool
 board_flash_erase_overlapping_sectors (void* buffer, uint32_t len)
 {
     uintptr_t start = (uintptr_t)buffer;
+    if (!bl_flash_range_ok(start, len)) return false;
     uintptr_t end = start + len - 1U;
 
     uint32_t first = (uint32_t)((start - BOARD_FLASH_ADDR_ZERO) / BOARD_FLASH_SECTOR_SIZE);
@@ -392,10 +400,14 @@ board_flash_erase_overlapping_sectors (void* buffer, uint32_t len)
     {
         if (!flash_sectors_erased[i])
         {
-            while (EFLASH_EraseSector(BOARD_FLASH_ADDR_ZERO + i * BOARD_FLASH_SECTOR_SIZE, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE);
+            uint32_t retries = 1000;
+            while (EFLASH_EraseSector(BOARD_FLASH_ADDR_ZERO + i * BOARD_FLASH_SECTOR_SIZE, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) {
+                if (--retries == 0) return false;
+            }
             flash_sectors_erased[i] = true;
         }
     }
+    return true;
 }
 
 /**

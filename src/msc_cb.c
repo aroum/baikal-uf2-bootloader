@@ -179,11 +179,15 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t *
     {
         UF2_Block *bl = (void*)buffer;
 
-        if ((bl->magicStart0 == UF2_MAGIC_START0) &&
+        if ((bufsize - count >= MSC_STORAGE_BLOCK_SIZE) &&
+            (bl->magicStart0 == UF2_MAGIC_START0) &&
             (bl->magicStart1 == UF2_MAGIC_START1) &&
             (bl->magicEnd == UF2_MAGIC_END) &&
             (bl->flags & UF2_FLAG_FAMILYID) &&
-            (!(bl->flags & UF2_FLAG_NOFLASH))) 
+            (!(bl->flags & UF2_FLAG_NOFLASH)) &&
+            (bl->familyID == BOARD_UF2_FAMILY_ID) &&
+            (bl->payloadSize <= sizeof(bl->data)) &&
+            bl_flash_range_ok(bl->targetAddr, bl->payloadSize))
         {
             if (first_write)
             {
@@ -191,7 +195,16 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t *
                 first_write = false;
             }
 
-            board_flash_erase_overlapping_sectors((void*)bl->targetAddr, bl->payloadSize);
+            if (!board_flash_erase_overlapping_sectors((void*)(uintptr_t)bl->targetAddr, bl->payloadSize))
+                return TUD_MSC_RET_ERROR;
+        }
+        else
+        {
+            if (bufsize - count < MSC_STORAGE_BLOCK_SIZE) return TUD_MSC_RET_ERROR;
+            lba++;
+            buffer += MSC_STORAGE_BLOCK_SIZE;
+            count += MSC_STORAGE_BLOCK_SIZE;
+            continue;
         }
 
         if (uf2_write_block(lba, buffer, &write_state) == 0)

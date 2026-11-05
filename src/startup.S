@@ -101,6 +101,7 @@ call_main:
 .balign 64, 0
 .type Default_Handler, %function
 Default_Handler:
+    call board_reset
     /* Infinite loop */
     j       .
 

@@ -81,7 +81,8 @@
 #define BOARD_INACTIVITY_TIMEOUT_MS     (500ULL)    /* Inactivity timeout applied after firmware update. It is to give host OS time to write file metadata. */
 
 /** @brief Erases the flash memory sectors overlapping with a buffer. */
-void board_flash_erase_overlapping_sectors(void* buffer, uint32_t len);
+bool board_flash_erase_overlapping_sectors(void* buffer, uint32_t len);
+bool bl_flash_range_ok(uintptr_t addr, uint32_t len);
 
 /** @brief Sets up inactivity timeout after firmware update. */
 void board_inactivity_timeout_set(void);
