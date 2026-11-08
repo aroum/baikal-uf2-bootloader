@@ -26,9 +26,9 @@ SECTIONS {
         *(.startup._start)  /* Reset vector */
     } > ROM
 
-    .note.gnu.build-id : ALIGN(4) {
-        KEEP(*(.note.gnu.build-id))
-    } > ROM
+    /DISCARD/ : {
+        *(.note.gnu.build-id)
+    }
 
     .text : ALIGN(4) {
         KEEP(*(.text.isr_vector))

@@ -26,6 +26,7 @@ jobs:
           python3 tests/test_flash.py
           python3 tests/test_uf2.py
           python3 tests/test_serial.py
+          python3 tests/test_app_state.py
 
       - name: Cache Baikal MCU SDK
         id: cache-sdk

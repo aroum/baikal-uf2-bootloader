@@ -43,12 +43,13 @@ typedef struct { uint32_t numBlocks, numWritten; bool aborted;
   uint8_t writtenMask[MAX_BLOCKS/8]; } WriteState;
 static bool first_write = true;
 static WriteState write_state;
-static unsigned erases, writes, resets, completions;
+static unsigned erases, writes, resets, completions, invalidations;
 static bool erase_fail, write_fail;
 static void indicator_set(int state) { (void)state; }
 bool board_inactivity_timeout_is_started(void) { return false; }
 static void board_dfu_complete(void) { completions++; }
 void board_flash_erase_reset(void) { resets++; }
+void board_app_state_invalidate(void) { invalidations++; }
 bool board_flash_erase_overlapping_sectors(void *p, uint32_t n) {
   (void)p; (void)n; erases++; return !erase_fail;
 }
@@ -89,7 +90,7 @@ int main(void) {
   b = block(); assert(tud_msc_write10_cb(0, 0, 0, (uint8_t *)&b, 12) == -1);
   assert(erases == 0 && writes == 0);
   assert(tud_msc_write10_cb(0, 0, 0, (uint8_t *)&b, 512) == 512);
-  assert(erases == 1 && writes == 1 && resets == 1 && write_state.numWritten == 1);
+  assert(erases == 1 && writes == 1 && resets == 1 && invalidations == 1 && write_state.numWritten == 1);
   assert(tud_msc_write10_cb(0, 0, 0, (uint8_t *)&b, 512) == 512);
   assert(write_state.numWritten == 1);
   b.blockNo = 1; b.targetAddr += 256;

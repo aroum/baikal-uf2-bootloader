@@ -235,11 +235,63 @@ board_reset (void) {
     for (;;);
 }
 
+static uintptr_t written_app_end = BOARD_FLASH_APP_ADDR;
+
+uint32_t
+board_flash_get_written_size (void) {
+    if (written_app_end <= BOARD_FLASH_APP_ADDR) return 0U;
+    return (uint32_t)(written_app_end - BOARD_FLASH_APP_ADDR);
+}
+
+uint32_t
+board_app_crc32 (uintptr_t start, uint32_t len) {
+    const uint8_t *p = (const uint8_t *)start;
+    uint32_t crc = 0xFFFFFFFFU;
+    while (len--) {
+        crc ^= *p++;
+        for (int i = 0; i < 8; i++) {
+            crc = (crc >> 1) ^ (0xEDB88320U & (0U - (crc & 1U)));
+        }
+    }
+    return ~crc;
+}
+
+void
+board_app_state_invalidate (void) {
+    uint32_t zero = BOARD_APP_STATE_INVALID;
+    EFLASH_ProgramWord(BOARD_FLASH_STATE_ADDR, zero, EFLASH_MAIN_ARRAY);
+}
+
+bool
+board_app_state_commit (uint32_t app_size, uint32_t crc32) {
+    board_app_state_t st;
+    st.state = BOARD_APP_STATE_VALID;
+    st.app_size = app_size;
+    st.crc32 = crc32;
+    st.check = st.state ^ st.app_size ^ st.crc32 ^ BOARD_APP_STATE_CHECK_XOR;
+
+    if (EFLASH_EraseSector(BOARD_FLASH_STATE_ADDR, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) {
+        return false;
+    }
+
+    if (EFLASH_ProgramWord(BOARD_FLASH_STATE_ADDR + 4, st.app_size, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) return false;
+    if (EFLASH_ProgramWord(BOARD_FLASH_STATE_ADDR + 8, st.crc32, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) return false;
+    if (EFLASH_ProgramWord(BOARD_FLASH_STATE_ADDR + 12, st.check, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) return false;
+    if (EFLASH_ProgramWord(BOARD_FLASH_STATE_ADDR, st.state, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) return false;
+
+    return true;
+}
+
 /**
  * @brief The function that is called when DFU is complete.
  */
 void
 board_dfu_complete (void) {
+    uint32_t app_size = board_flash_get_written_size();
+    if (app_size > 0 && app_size <= BOARD_FLASH_APP_SIZE) {
+        uint32_t crc = board_app_crc32(BOARD_FLASH_APP_ADDR, app_size);
+        board_app_state_commit(app_size, crc);
+    }
     /* Set up inactivity timeout to give host OS time to write file metadata. */
     board_inactivity_timeout_set();
 }
@@ -250,16 +302,34 @@ board_dfu_complete (void) {
  */
 bool
 board_app_valid (void) {
-    bool retval = false;
-
     volatile uint32_t magic_num = *(volatile uint32_t*)BOARD_FLASH_APP_MAGIC_ADDR;
-
-    if (magic_num == BOARD_FLASH_APP_MAGIC_NUM)
-    {
-        retval = true;
+    if (magic_num != BOARD_FLASH_APP_MAGIC_NUM) {
+        return false;
     }
 
-    return retval;
+    const board_app_state_t *st = (const board_app_state_t *)BOARD_FLASH_STATE_ADDR;
+    if (st->state == BOARD_APP_STATE_INVALID) {
+        return false;
+    }
+
+    if (st->state == BOARD_APP_STATE_VALID) {
+        if (st->check != (st->state ^ st->app_size ^ st->crc32 ^ BOARD_APP_STATE_CHECK_XOR)) {
+            return false;
+        }
+        if (st->app_size == 0 || st->app_size > BOARD_FLASH_APP_SIZE) {
+            return false;
+        }
+        if (board_app_crc32(BOARD_FLASH_APP_ADDR, st->app_size) != st->crc32) {
+            return false;
+        }
+        return true;
+    }
+
+    if (st->state == BOARD_APP_STATE_ERASED) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -322,6 +392,7 @@ board_flash_init (void) {
 
 void board_flash_erase_reset(void) {
     memset(flash_sectors_erased, 0, sizeof(flash_sectors_erased));
+    written_app_end = BOARD_FLASH_APP_ADDR;
 }
 
 /**
@@ -368,7 +439,11 @@ board_flash_write (uint32_t addr, void const* data, uint32_t len) {
     CRU_EFLASH_DMAMode_Disable();
 #endif
 
-    return memcmp((const void*)addr, data, len) == 0;
+    if (memcmp((const void*)addr, data, len) != 0) return false;
+    if ((uintptr_t)addr + len > written_app_end) {
+        written_app_end = (uintptr_t)addr + len;
+    }
+    return true;
 }
 
 /**
@@ -387,6 +462,8 @@ board_flash_erase_app (void) {
         }
         sector_address += BOARD_FLASH_SECTOR_SIZE;
     }
+    /* Also erase application state sector */
+    EFLASH_EraseSector(BOARD_FLASH_STATE_ADDR, EFLASH_MAIN_ARRAY);
     /* A subsequent UF2 transfer must start with a fresh erase map. */
     board_flash_erase_reset();
 }

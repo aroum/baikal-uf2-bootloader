@@ -195,6 +195,7 @@ int32_t tud_msc_write10_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t *
             {
                 memset(&write_state, 0, sizeof(write_state));
                 board_flash_erase_reset();
+                board_app_state_invalidate();
                 indicator_set(STATE_WRITING_STARTED);
                 first_write = false;
             }

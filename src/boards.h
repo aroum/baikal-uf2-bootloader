@@ -38,20 +38,37 @@
 #define BOARD_FLASH_SIZE                (256UL * 1024UL)            /* Flash overall size */
 #define BOARD_FLASH_SECTOR_SIZE         (1024UL)                    /* Flash sector size */
 
+#ifndef BOARD_FLASH_ADDR_ZERO
 #define BOARD_FLASH_ADDR_ZERO           (0xA0000000UL)              /* Flash start address, used only for address validation */
+#endif
 
 #define BOARD_FLASH_BOOT_ADDR           BOARD_FLASH_ADDR_ZERO                                   /* Bootloader address */
 #define BOARD_FLASH_BOOT_SIZE           (16UL * 1024UL)                                         /* Bootloader size */
-#define BOARD_FLASH_APP_ADDR            (BOARD_FLASH_ADDR_ZERO + BOARD_FLASH_BOOT_SIZE)         /* Application address. It's a replacement for BOARD_FLASH_APP_START, check the note above. */
-#define BOARD_FLASH_APP_SIZE            (BOARD_FLASH_SIZE - BOARD_FLASH_BOOT_SIZE)              /* Application size */
+#define BOARD_FLASH_STATE_ADDR          (BOARD_FLASH_ADDR_ZERO + BOARD_FLASH_SIZE - BOARD_FLASH_SECTOR_SIZE) /* Dedicated sector for application state ledger */
+#define BOARD_FLASH_APP_ADDR            (BOARD_FLASH_ADDR_ZERO + BOARD_FLASH_BOOT_SIZE)         /* Application address */
+#define BOARD_FLASH_APP_SIZE            (BOARD_FLASH_STATE_ADDR - BOARD_FLASH_APP_ADDR)         /* Application size (excluding bootloader and state sector) */
 #define BOARD_FLASH_APP_START           BOARD_FLASH_APP_ADDR
 
+#define BOARD_APP_STATE_ERASED          (0xFFFFFFFFU)
+#define BOARD_APP_STATE_VALID           (0xB007C0DEU)
+#define BOARD_APP_STATE_INVALID         (0x00000000U)
+#define BOARD_APP_STATE_CHECK_XOR       (0xA5A5A5A5U)
+
+typedef struct {
+    uint32_t state;
+    uint32_t app_size;
+    uint32_t crc32;
+    uint32_t check;
+} board_app_state_t;
+
+#if !defined(BOARD_FLASH_ADDR_OVERRIDE)
 #if ((BOARD_FLASH_BOOT_ADDR % BOARD_FLASH_SECTOR_SIZE) != 0x0UL)
 #error "BOARD_FLASH_BOOT_ADDR must be aligned on a sector boundary"
 #endif
 
 #if ((BOARD_FLASH_APP_ADDR % BOARD_FLASH_SECTOR_SIZE) != 0x0UL)
 #error "BOARD_FLASH_APP_ADDR must be aligned on a sector boundary"
+#endif
 #endif
 
 #define BOARD_FLASH_APP_MAGIC_NUM       (0x0BEF5262UL)                                          /* Application magic number used for validation */
@@ -84,6 +101,11 @@
 bool board_flash_erase_overlapping_sectors(void* buffer, uint32_t len);
 bool bl_flash_range_ok(uintptr_t addr, uint32_t len);
 void board_flash_erase_reset(void);
+
+uint32_t board_app_crc32(uintptr_t start, uint32_t len);
+void board_app_state_invalidate(void);
+bool board_app_state_commit(uint32_t app_size, uint32_t crc32);
+uint32_t board_flash_get_written_size(void);
 
 /** @brief Sets up inactivity timeout after firmware update. */
 void board_inactivity_timeout_set(void);
