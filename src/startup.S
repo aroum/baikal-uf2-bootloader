@@ -101,9 +101,15 @@ call_main:
 .balign 64, 0
 .type Default_Handler, %function
 Default_Handler:
-    call board_reset
-    /* Infinite loop */
-    j       .
+    /* Disable interrupts globally */
+    csrci   mstatus, 8
+    /* Reinitialize stack pointer to known safe top-of-RAM in case of stack corruption */
+    la      sp, __SP
+    /* Initiate reset sequence via WDT */
+    call    board_reset
+    /* Infinite loop while watchdog counts down to reset */
+1:
+    j       1b
 
 /* ISR vector table */
 .section .text.isr_vector,"a",%progbits
