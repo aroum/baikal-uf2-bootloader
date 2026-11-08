@@ -48,3 +48,10 @@ LDFLAGS += -flto -Os
 LDSCRIPT = $(CURDIR)/linker.ld
 
 include $(SDK_DIR)/Tools/build/common.mk
+
+.PHONY: updater
+updater: $(OUT_DIR)/$(PRJ_NAME).bin
+	$(MAKE) -C updater SDK_DIR=$(SDK_DIR) BUILD_TYPE=$(BUILD_TYPE)
+	python3 $(CURDIR)/tools/uf2conv.py $(CURDIR)/updater/output/$(BUILD_TYPE)/update-baikal-uf2-bootloader.bin \
+		-b 0xA0004000 -f 0x6ecb67a8 -c -o $(OUT_DIR)/update-baikal-uf2-bootloader.uf2
+

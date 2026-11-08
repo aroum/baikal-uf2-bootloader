@@ -27,6 +27,7 @@ jobs:
           python3 tests/test_uf2.py
           python3 tests/test_serial.py
           python3 tests/test_app_state.py
+          python3 tests/test_updater.py
 
       - name: Cache Baikal MCU SDK
         id: cache-sdk
@@ -52,7 +53,11 @@ jobs:
             SDK_DIR=$HOME/baikal-sdk \
             BUILD_TYPE=release \
             -j$(nproc)
+          make updater \
+            SDK_DIR=$HOME/baikal-sdk \
+            BUILD_TYPE=release
           $HOME/baikal-sdk/Tools/toolchain/bin/riscv32-none-elf-size output/release/*.elf
+          $HOME/baikal-sdk/Tools/toolchain/bin/riscv32-none-elf-size updater/output/release/*.elf
 
       - name: Upload bootloader binary
         uses: actions/upload-artifact@v7
@@ -62,6 +67,7 @@ jobs:
             output/release/*.elf
             output/release/*.bin
             output/release/*.hex
+            output/release/*.uf2
           if-no-files-found: error
           retention-days: 3
 
@@ -73,4 +79,5 @@ jobs:
             output/release/*.elf
             output/release/*.bin
             output/release/*.hex
+            output/release/*.uf2
           generate_release_notes: true
