@@ -274,16 +274,18 @@ board_app_jump (void) {
 
 /**
  * @brief   Gets the board serial number.
- * @param   serial_id The serial number buffer.
- * @returns The length of the serial number (limited to 16 bytes).
+ * @param   serial_id The serial number buffer (at least 16 bytes).
+ * @returns The length of the serial number (0 if no unique ID is available).
  */
 uint8_t
 board_usb_get_serial (uint8_t serial_id[16]) {
-    /* Fixed serial string is 01234567889ABCDEF */
-    static const uint8_t serial[] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef};
-    memcpy(serial_id, serial, sizeof(serial));
-
-    return 8U;
+    (void)serial_id;
+    /* BE-U1000 MCU does not have a factory hardware UID register.
+     * Returning 0 indicates that no unique serial number is available.
+     * The USB device descriptor sets iSerialNumber = 0, letting the host
+     * identify devices by physical USB port path rather than colliding on
+     * a hardcoded identical serial string across all devices. */
+    return 0U;
 }
 
 //--------------------------------------------------------------------+

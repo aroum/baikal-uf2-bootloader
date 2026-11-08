@@ -81,6 +81,9 @@ tusb_desc_device_t desc_device =
 // Application return pointer to descriptor
 uint8_t const * tud_descriptor_device_cb(void)
 {
+  uint8_t serial_id[16] TU_ATTR_ALIGNED(4);
+  uint8_t const serial_len = board_usb_get_serial(serial_id);
+  desc_device.iSerialNumber = (serial_len > 0) ? STRID_SERIAL : 0;
   return (uint8_t const *) &desc_device;
 }
 
@@ -158,7 +161,8 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
 
     case STRID_SERIAL: {
       uint8_t serial_id[16] TU_ATTR_ALIGNED(4);
-      uint8_t serial_len = board_usb_get_serial(serial_id);
+      uint8_t const serial_len = board_usb_get_serial(serial_id);
+      if (serial_len == 0) return NULL;
       chr_count = 2 * serial_len;
 
       for (uint8_t i = 0; i < serial_len; i++) {
