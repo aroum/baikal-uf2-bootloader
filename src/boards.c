@@ -165,7 +165,9 @@ board_init (void) {
     bsp_btn_init();
 #endif /* USE_DFU_BUTTON */
 
+#if TUF2_LOG
     bsp_serial_init();
+#endif
 
     /* Disable buffered stdout (commented out to save flash space) */
     // setbuf(stdout, NULL);
@@ -189,8 +191,10 @@ board_teardown (void) {
     /* Restore stdout buffering (commented out to save flash space) */
     // setvbuf(stdout, NULL, _IOFBF, BUFSIZ);
 
+#if TUF2_LOG
     /* Deinit serial */
     bsp_serial_deinit();
+#endif
 
     /* Deinit LED */
     bsp_led_deinit();
@@ -274,10 +278,13 @@ board_app_state_commit (uint32_t app_size, uint32_t crc32) {
         return false;
     }
 
-    if (EFLASH_ProgramWord(BOARD_FLASH_STATE_ADDR + 4, st.app_size, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) return false;
-    if (EFLASH_ProgramWord(BOARD_FLASH_STATE_ADDR + 8, st.crc32, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) return false;
-    if (EFLASH_ProgramWord(BOARD_FLASH_STATE_ADDR + 12, st.check, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) return false;
-    if (EFLASH_ProgramWord(BOARD_FLASH_STATE_ADDR, st.state, EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) return false;
+    const uint32_t *words = (const uint32_t *)&st;
+    /* Program app_size, crc32, check first, then state marker */
+    for (int i = 3; i >= 0; i--) {
+        if (EFLASH_ProgramWord(BOARD_FLASH_STATE_ADDR + (uint32_t)(i * 4), words[i], EFLASH_MAIN_ARRAY) != EFLASH_COMPLETE) {
+            return false;
+        }
+    }
 
     return true;
 }

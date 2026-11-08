@@ -31,10 +31,12 @@ static uint32_t led_cycle_length = 300; // ms (fast blink by default before USB 
 
 static bool check_dfu_mode(void);
 
+#if TUF2_LOG
 int
 __io_putchar (int ch) {
     return bsp_serial_putchar(ch);
 }
+#endif
 
 void
 indicator_set (uint32_t state) {
