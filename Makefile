@@ -30,6 +30,10 @@ CSRC += $(SDK_DIR)/Middlewares/Baikal/syscalls.c
 # Override startup from SDK (exclude the default multi-core one)
 ASRC_EXCLUDE += $(SDK_DIR)/Tools/build/platform/$(MCU_MODEL)/startup_c0_c1.S
 
+# Exclude updater sources from main bootloader build
+ASRC_EXCLUDE += $(wildcard $(CURDIR)/updater/*.S)
+CSRC_EXCLUDE += $(wildcard $(CURDIR)/updater/*.c)
+
 # Include paths for TinyUSB and TinyUF2
 INC_DIR += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/src
 INC_DIR += $(SDK_DIR)/Middlewares/Third_Party/TinyUSB/hw

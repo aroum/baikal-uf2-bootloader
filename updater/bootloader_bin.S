@@ -7,7 +7,7 @@
     .balign 4
 
 bootloader_bin:
-    .incbin "output/release/baikal-uf2-bootloader.bin"
+    .incbin "../output/release/baikal-uf2-bootloader.bin"
 bootloader_bin_end:
 
     .balign 4
